@@ -44,23 +44,33 @@ function App() {
   const loadInitialNews = async () => {
     try {
       setLoading(true);
+      setError(null);
       const newsArticles = await fetchNews(searchParams);
       const classifiedArticles = await Promise.all(
         newsArticles.map(async (article) => {
-          const classification = await classifyNews(
-            article.title,
-            article.description || ''
-          );
-          return {
-            ...article,
-            isFake: classification?.is_fake,
-            confidence: classification?.confidence
-          };
+          try {
+            const classification = await classifyNews(
+              article.title,
+              article.description || ''
+            );
+            return {
+              ...article,
+              isFake: classification?.is_fake,
+              confidence: classification?.confidence
+            };
+          } catch (error) {
+            console.error('Error classifying article:', error);
+            return {
+              ...article,
+              isFake: undefined,
+              confidence: undefined
+            };
+          }
         })
       );
       setArticles(classifiedArticles);
-    } catch (error) {
-      setError('Error loading news articles. Please try again.');
+    } catch (error: any) {
+      setError(error.message || 'Error loading news articles. Please try again.');
       console.error('Error:', error);
     } finally {
       setLoading(false);
@@ -155,7 +165,7 @@ function App() {
             <NewsCard
               key={index}
               title={article.title}
-              description={article.description}
+              description={article.description || ''}
               url={article.url}
               imageUrl={article.urlToImage}
               isFake={article.isFake}
